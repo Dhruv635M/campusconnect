@@ -15,6 +15,7 @@ import {
   Eye,
   MapPin,
 } from "lucide-react";
+import ProductDetails from "./ProductDetails";
 
 // INITIAL MARKETPLACE PRODUCTS
 
@@ -189,7 +190,19 @@ function Marketplace({ onBack }) {
     setActiveFilter("All");
     setSearch("");
   };
+      // OPEN FULL PRODUCT DETAILS PAGE
 
+  if (selectedProduct) {
+    return (
+      <ProductDetails
+        key={selectedProduct.id}
+        product={selectedProduct}
+        products={products}
+        onBack={() => setSelectedProduct(null)}
+        onSelectProduct={(product) => setSelectedProduct(product)}
+      />
+    );
+  }
   return (
     <div className="min-h-screen bg-[#F5F8F8] text-[#123D50]">
 
