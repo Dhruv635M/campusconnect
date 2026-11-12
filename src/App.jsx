@@ -10,19 +10,24 @@ import {
   CalendarDays,
   Building2
 } from "lucide-react";
+
 import { useState } from "react";
 import Auth from "./Auth";
 import Canteen from "./Canteen";
+import About from "./About";
+import Marketplace from "./Marketplace";
 
-// HERO SECTION :
+
+// HERO SECTION
 
 function Hero() {
   return (
     <section
+      id="home"
       className="relative flex min-h-[520px] items-center justify-center overflow-hidden bg-cover bg-center px-6 py-20 text-center"
       style={{
-       backgroundImage:
-  "linear-gradient(rgba(10, 42, 55, 0.55), rgba(10, 42, 55, 0.65)), url('/campus.png')",
+        backgroundImage:
+          "linear-gradient(rgba(10, 42, 55, 0.55), rgba(10, 42, 55, 0.65)), url('/campus.png')",
       }}
     >
       <div className="max-w-3xl text-white">
@@ -33,25 +38,31 @@ function Hero() {
         <h1 className="mb-6 text-4xl font-extrabold leading-tight md:text-6xl">
           Welcome to <span className="text-teal-300">CampusConnect</span>
         </h1>
-<br />
+
+        <br />
+
         <p className="mb-8 text-lg leading-relaxed text-gray-200 md:text-xl">
           Announcements · Marketplace · Canteen · Attendance
         </p>
-<br /><br />
- <button type="button" className="!inline-flex !h-14 !w-auto !min-w-[150px] !items-center !justify-center !gap-2 !whitespace-nowrap !rounded-full !border-0 !bg-teal-600 !px-8 !py-0 !text-lg !font-bold !leading-none !text-white !shadow-lg transition hover:!bg-teal-500">
-  <span className="text-xl">Get Started</span>
-  <span className="text-2xl">→</span>
- </button>
+
+        <br /><br />
+
+        <button
+          type="button"
+          className="!inline-flex !h-14 !w-auto !min-w-[150px] !items-center !justify-center !gap-2 !whitespace-nowrap !rounded-full !border-0 !bg-teal-600 !px-8 !py-0 !text-lg !font-bold !leading-none !text-white !shadow-lg transition hover:!bg-teal-500"
+        >
+          <span className="text-xl">Get Started</span>
+          <span className="text-2xl">→</span>
+        </button>
       </div>
     </section>
   );
 }
 
 
-// FEATURES COMPONENT :
+// FEATURES COMPONENT
 
-
-function Features({ onCanteenClick }) {
+function Features({ onCanteenClick, onMarketplaceClick }) {
   const cardStyle = {
     width: "270px",
     maxWidth: "100%",
@@ -79,11 +90,15 @@ function Features({ onCanteenClick }) {
         <p className="mb-3 font-semibold uppercase tracking-widest text-teal-700">
           Explore CampusConnect
         </p>
-         <br />
+
+        <br />
+
         <h2 className="text-3xl font-extrabold text-[#123D50] md:text-4xl">
           Everything Your Campus Needs
         </h2>
+
         <br />
+
         <p className="mt-3 text-slate-600">
           One platform to make your campus life easier and smarter.
         </p>
@@ -100,58 +115,101 @@ function Features({ onCanteenClick }) {
           margin: "0 auto",
         }}
       >
+
+        {/* CAMPUS HUB */}
         <div style={cardStyle}>
           <House size={42} className="mb-5 text-teal-700" />
+
           <h3 className="mb-3 text-xl font-bold text-[#123D50]">
             Campus Hub
           </h3>
+
           <p className="leading-relaxed text-slate-600">
             Stay updated with the latest campus announcements and events.
           </p>
         </div>
 
-        <div style={cardStyle}>
+
+        {/* MARKETPLACE */}
+        <div
+          style={{
+            ...cardStyle,
+            cursor: "pointer",
+            transition: "all 0.3s ease",
+          }}
+          onClick={onMarketplaceClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onMarketplaceClick();
+            }
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = "translateY(-5px)";
+            e.currentTarget.style.boxShadow =
+              "0 10px 25px rgba(18, 61, 80, 0.15)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "translateY(0)";
+            e.currentTarget.style.boxShadow =
+              "0 4px 15px rgba(18, 61, 80, 0.10)";
+          }}
+        >
           <ShoppingCart size={42} className="mb-5 text-teal-700" />
+
           <h3 className="mb-3 text-xl font-bold text-[#123D50]">
             Marketplace
           </h3>
+
           <p className="leading-relaxed text-slate-600">
             Buy and sell books, accessories and other items with ease.
           </p>
         </div>
 
+
+        {/* CANTEEN */}
         <div
-  style={{ ...cardStyle, cursor: "pointer" }}
-  onClick={onCanteenClick}
->
-  <Utensils size={42} className="mb-5 text-teal-700" />
+          style={{
+            ...cardStyle,
+            cursor: "pointer",
+            transition: "all 0.3s ease",
+          }}
+          onClick={onCanteenClick}
+        >
+          <Utensils size={42} className="mb-5 text-teal-700" />
 
-  <h3 className="mb-3 text-xl font-bold text-[#123D50]">
-    Canteen
-  </h3>
+          <h3 className="mb-3 text-xl font-bold text-[#123D50]">
+            Canteen
+          </h3>
 
-  <p className="leading-relaxed text-slate-600">
-    Pre-order your favourite food and save time during lunch breaks.
-  </p>
-</div>
+          <p className="leading-relaxed text-slate-600">
+            Pre-order your favourite food and save time during lunch breaks.
+          </p>
+        </div>
 
+
+        {/* ATTENDANCE */}
         <div style={cardStyle}>
           <QrCode size={42} className="mb-5 text-teal-700" />
+
           <h3 className="mb-3 text-xl font-bold text-[#123D50]">
             Attendance
           </h3>
+
           <p className="leading-relaxed text-slate-600">
             Mark your attendance quickly and easily using QR scanning.
           </p>
         </div>
+
       </div>
     </section>
   );
 }
 
 
-// STATISTICS COMPONENT :
-
+// STATISTICS COMPONENT
 
 function Stats() {
   const stats = [
@@ -220,15 +278,14 @@ function Stats() {
 }
 
 
+// NAVBAR COMPONENT
 
-// NAVBAR COMPONENT :
-
-function Navbar({ onAuthClick }) {
+function Navbar({ onAuthClick, onAboutClick }) {
   return (
     <nav className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-8 h-20 flex items-center justify-between">
 
-        {/* Logo */}
+        {/* LOGO */}
         <div className="flex items-center gap-3">
           <div className="bg-[#E0F2F1] p-2 rounded-xl">
             <GraduationCap size={36} className="text-[#123D50]" />
@@ -239,37 +296,50 @@ function Navbar({ onAuthClick }) {
           </h1>
         </div>
 
-        {/* Navigation Links */}
+        {/* NAVIGATION LINKS */}
         <div className="hidden md:flex items-center gap-14 text-base font-semibold text-slate-600">
 
-          <a href="#home" className="text-[#0F766E]">Home</a>
-          <a href="#features" className="hover:text-[#0F766E] transition">Features</a>
-          <a href="#about" className="hover:text-[#0F766E] transition">About</a>
-          <a href="#contact" className="hover:text-[#0F766E] transition">Contact</a>
+          <a href="#home" className="text-[#0F766E]">
+            Home
+          </a>
+
+          <a href="#features" className="hover:text-[#0F766E] transition">
+            Features
+          </a>
+
+          <button
+            onClick={onAboutClick}
+            className="hover:text-[#0F766E] transition"
+          >
+            About
+          </button>
+
+          <a href="#contact" className="hover:text-[#0F766E] transition">
+            Contact
+          </a>
 
         </div>
 
-        {/* Login and Signup */}
-       <div className="flex items-center gap-4 pr-2">
-  <button
-  onClick={() => onAuthClick("login")}
-  className="inline-flex min-w-[120px] items-center justify-center whitespace-nowrap rounded-full border-2 border-teal-700 px-6 py-3 text-base font-semibold text-teal-800 transition hover:bg-teal-50"
->
-  Login
-</button>
+        {/* LOGIN AND SIGNUP */}
+        <div className="flex items-center gap-4 pr-2">
 
-<button
-  onClick={() => onAuthClick("register")}
-  className="inline-flex min-w-[120px] items-center justify-center whitespace-nowrap rounded-full bg-teal-700 px-6 py-3 text-base font-semibold text-white transition hover:bg-teal-800">
-   Sign Up
-</button>
-</div>
+          <button
+            onClick={() => onAuthClick("login")}
+            className="inline-flex min-w-[120px] items-center justify-center whitespace-nowrap rounded-full border-2 border-teal-700 px-6 py-3 text-base font-semibold text-teal-800 transition hover:bg-teal-50"
+          >
+            Login
+          </button>
 
+          <button
+            onClick={() => onAuthClick("register")}
+            className="inline-flex min-w-[120px] items-center justify-center whitespace-nowrap rounded-full bg-teal-700 px-6 py-3 text-base font-semibold text-white transition hover:bg-teal-800"
+          >
+            Sign Up
+          </button>
+
+        </div>
       </div>
     </nav>
-
-
-
   );
 }
 
@@ -280,20 +350,46 @@ function App() {
   const [authMode, setAuthMode] = useState(null);
   const [currentPage, setCurrentPage] = useState("home");
 
+  // MARKETPLACE PAGE
+  if (currentPage === "marketplace") {
+    return (
+      <Marketplace onBack={() => setCurrentPage("home")} />
+    );
+  }
+
+  // AUTH PAGE
   if (authMode) {
     return <Auth key={authMode} initialMode={authMode} />;
   }
 
+  // CANTEEN PAGE
   if (currentPage === "canteen") {
     return <Canteen />;
   }
 
+  // ABOUT PAGE
+  if (currentPage === "about") {
+    return <About onBack={() => setCurrentPage("home")} />;
+  }
+
+  // HOME PAGE
   return (
     <div className="min-h-screen bg-[#F0FAFA]">
-      <Navbar onAuthClick={setAuthMode} />
+
+      <Navbar
+        onAuthClick={setAuthMode}
+        onAboutClick={() => setCurrentPage("about")}
+      />
+
       <Hero />
-      <Features onCanteenClick={() => setCurrentPage("canteen")} />
+
+      <Features
+        onCanteenClick={() => setCurrentPage("canteen")}
+        onMarketplaceClick={() => setCurrentPage("marketplace")}
+      />
+
       <Stats />
+
     </div>
   );
 }
