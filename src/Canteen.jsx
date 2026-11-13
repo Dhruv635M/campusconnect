@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   GraduationCap,
   Search,
@@ -18,9 +18,14 @@ import {
   Minus,
   Truck,
   ShoppingBag,
+  LogOut,
+  LayoutDashboard,
+  ChevronDown,
 } from "lucide-react";
 
 import OrderTracking from "./OrderTracking";
+
+// FOOD ITEMS
 
 const menuItems = [
   {
@@ -67,6 +72,8 @@ const menuItems = [
   },
 ];
 
+// CATEGORIES
+
 const categories = [
   { name: "All", icon: LayoutGrid },
   { name: "Breakfast", icon: Coffee },
@@ -76,7 +83,36 @@ const categories = [
   { name: "Desserts", icon: Cake },
 ];
 
-function Canteen() {
+// USER INITIALS
+
+const getInitials = (name = "") => {
+  return (
+    name
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0].toUpperCase())
+      .join("") || "U"
+  );
+};
+
+// ROLE FORMAT
+
+const formatRole = (role) => {
+  const roles = {
+    student: "Student",
+    faculty: "Faculty",
+    teacher: "Teacher",
+    admin: "Admin",
+  };
+
+  return roles[(role || "").toLowerCase()] || "Member";
+};
+
+// MAIN CANTEEN COMPONENT
+
+function Canteen({ user, onDashboardClick, onLogout }) {
   const [activeCategory, setActiveCategory] = useState("All");
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState([]);
@@ -86,13 +122,23 @@ function Canteen() {
   const [classroom, setClassroom] = useState("");
 
   const [showTracking, setShowTracking] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
-  // Load the most recently placed order
+  // LOGGED-IN USER DETAILS
+
+  const displayName = user?.name?.trim() || "User";
+  const displayRole = formatRole(user?.role);
+  const profileImage = user?.profileImage || "";
+  const initials = getInitials(displayName);
+
+  // LOAD PREVIOUS ORDER
+
   const [currentOrder, setCurrentOrder] = useState(() => {
     try {
       const savedOrder = localStorage.getItem(
         "campusconnectCurrentOrder"
       );
+
       return savedOrder ? JSON.parse(savedOrder) : null;
     } catch (error) {
       console.error("Could not load saved order:", error);
@@ -100,20 +146,24 @@ function Canteen() {
     }
   });
 
-  // Search and category filtering
-  const filteredItems = menuItems.filter((item) => {
-    const categoryMatch =
-      activeCategory === "All" ||
-      item.category === activeCategory;
+  // FILTER FOOD ITEMS
 
-    const searchMatch = item.name
-      .toLowerCase()
-      .includes(search.toLowerCase());
+  const filteredItems = useMemo(() => {
+    return menuItems.filter((item) => {
+      const categoryMatch =
+        activeCategory === "All" ||
+        item.category === activeCategory;
 
-    return categoryMatch && searchMatch;
-  });
+      const searchMatch = item.name
+        .toLowerCase()
+        .includes(search.toLowerCase());
 
-  // Add item to cart
+      return categoryMatch && searchMatch;
+    });
+  }, [activeCategory, search]);
+
+  // ADD TO CART
+
   const addToCart = (item) => {
     setCart((previous) => {
       const existing = previous.find(
@@ -132,7 +182,8 @@ function Canteen() {
     });
   };
 
-  // Change item quantity
+  // CHANGE QUANTITY
+
   const changeQuantity = (id, amount) => {
     setCart((previous) =>
       previous
@@ -145,15 +196,14 @@ function Canteen() {
     );
   };
 
-  // Calculate bill
+  // BILL CALCULATION
+
   const subtotal = cart.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
 
-  const deliveryFee =
-    deliveryMethod === "delivery" ? 20 : 0;
-
+  const deliveryFee = deliveryMethod === "delivery" ? 20 : 0;
   const total = subtotal + deliveryFee;
 
   const cartCount = cart.reduce(
@@ -161,17 +211,15 @@ function Canteen() {
     0
   );
 
-  // Place order
+  // PLACE ORDER
+
   const handlePlaceOrder = () => {
     if (cart.length === 0) {
       alert("Please add items to your cart.");
       return;
     }
 
-    if (
-      deliveryMethod === "delivery" &&
-      !classroom.trim()
-    ) {
+    if (deliveryMethod === "delivery" && !classroom.trim()) {
       alert("Please enter your classroom number.");
       return;
     }
@@ -188,7 +236,6 @@ function Canteen() {
       subtotal,
       deliveryFee,
       total,
-
       method: deliveryMethod,
 
       classroom:
@@ -197,11 +244,7 @@ function Canteen() {
           : "",
 
       pickupTime,
-
       date: new Date().toLocaleDateString(),
-
-      // 0 = Placed, 1 = Confirmed, 2 = Preparing,
-      // 3 = Ready, 4 = Completed
       status: 0,
     };
 
@@ -219,7 +262,19 @@ function Canteen() {
     setShowTracking(true);
   };
 
-  // Display Order Tracking page
+  // OPEN ORDER TRACKING
+
+  const handleTrackOrders = () => {
+    if (!currentOrder) {
+      alert("You haven't placed an order yet.");
+      return;
+    }
+
+    setShowTracking(true);
+  };
+
+  // ORDER TRACKING PAGE
+
   if (showTracking) {
     return (
       <OrderTracking
@@ -231,12 +286,13 @@ function Canteen() {
 
   return (
     <div className="min-h-screen bg-[#F0FAFA] p-3 sm:p-5">
-
       <div className="mx-auto max-w-[1700px] overflow-hidden rounded-2xl border border-[#DCE9E8] bg-white shadow-[0_4px_20px_rgba(18,61,80,0.08)]">
 
         {/* NAVBAR */}
 
-        <header className="flex min-h-[82px] flex-wrap items-center gap-4 border-b border-[#E5EEEE] bg-white px-5 py-4 md:px-7">
+        <header className="relative flex min-h-[82px] flex-wrap items-center gap-4 border-b border-[#E5EEEE] bg-white px-5 py-4 md:px-7">
+
+          {/* LOGO */}
 
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-[#E0F2F1] p-2">
@@ -253,10 +309,9 @@ function Canteen() {
 
           {/* SEARCH BAR */}
 
-          <div className="flex h-9 flex-1 items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 focus-within:border-teal-600">
-
+          <div className="flex h-11 min-w-[150px] flex-1 items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 focus-within:border-teal-600">
             <Search
-              size={18}
+              size={19}
               className="shrink-0 text-slate-400"
             />
 
@@ -269,36 +324,147 @@ function Canteen() {
             />
           </div>
 
+          {/* NAVBAR RIGHT SIDE */}
+
           <div className="ml-auto flex items-center gap-3 text-[#123D50]">
 
-            {/* PROFESSIONAL TRACK ORDERS BUTTON */}
+            {/* TRACK ORDERS */}
 
             <button
-              onClick={() => setShowTracking(true)}
-              className="group inline-flex h-11 items-center gap-2.5 rounded-xl border border-[#123D50]/10 bg-[#123D50] px-4 text-sm font-semibold tracking-wide text-white shadow-[0_3px_8px_rgba(18,61,80,0.16)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#0F766E] hover:shadow-[0_5px_14px_rgba(15,118,110,0.22)] active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-[#0F766E] focus:ring-offset-2"
+              type="button"
+              onClick={handleTrackOrders}
+              className="group inline-flex h-11 items-center gap-2.5 rounded-xl bg-[#123D50] px-4 text-sm font-semibold tracking-wide text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[#0F766E]"
             >
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/15 transition group-hover:bg-white/20">
-                <Truck size={17} strokeWidth={2.2} />
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/15">
+                <Truck size={17} />
               </span>
-
               <span>Track Orders</span>
             </button>
 
-            <button className="transition hover:text-[#0F766E]">
-              <Settings size={21} />
+            {/* SETTINGS */}
+
+            <button
+              type="button"
+              title="Settings"
+              className="hidden transition hover:text-[#0F766E] sm:block"
+            >
+              <Settings size={22} />
             </button>
 
-            <button className="relative transition hover:text-[#0F766E]">
-              <Bell size={21} />
+            {/* NOTIFICATIONS */}
+
+            <button
+              type="button"
+              title="Notifications"
+              className="relative hidden transition hover:text-[#0F766E] sm:block"
+            >
+              <Bell size={22} />
               <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-[#D6A84B]" />
             </button>
 
-            <UserCircle
-              size={31}
-              className="text-[#123D50]"
-            />
-          </div>
+            {/* USER PROFILE */}
 
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() =>
+                  setShowProfileMenu((previous) => !previous)
+                }
+                className="flex items-center gap-2 rounded-full border border-slate-200 bg-white p-1.5 transition hover:border-[#0F766E] hover:bg-[#F0FAFA]"
+                aria-label="Open profile menu"
+              >
+                {profileImage ? (
+                  <img
+                    src={profileImage}
+                    alt={displayName}
+                    className="h-9 w-9 rounded-full border border-slate-200 object-cover"
+                  />
+                ) : (
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#E0F2F1] text-sm font-bold text-[#0F766E]">
+                    {initials}
+                  </div>
+                )}
+
+                <span className="hidden max-w-[110px] truncate text-sm font-semibold text-[#123D50] lg:block">
+                  {displayName}
+                </span>
+
+                <ChevronDown
+                  size={15}
+                  className="mr-1 hidden text-slate-500 sm:block"
+                />
+              </button>
+
+              {/* PROFILE DROPDOWN */}
+
+              {showProfileMenu && (
+                <>
+                  <button
+                    type="button"
+                    aria-label="Close profile menu"
+                    className="fixed inset-0 z-40 cursor-default"
+                    onClick={() => setShowProfileMenu(false)}
+                  />
+
+                  <div className="absolute right-0 top-14 z-50 w-64 overflow-hidden rounded-xl border border-slate-200 bg-white p-3 shadow-xl">
+
+                    {/* USER INFORMATION */}
+
+                    <div className="flex items-center gap-3 border-b border-slate-100 px-2 pb-3">
+                      {profileImage ? (
+                        <img
+                          src={profileImage}
+                          alt={displayName}
+                          className="h-11 w-11 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#E0F2F1] font-bold text-[#0F766E]">
+                          {initials}
+                        </div>
+                      )}
+
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-bold text-[#123D50]">
+                          {displayName}
+                        </p>
+                        <p className="mt-0.5 text-xs text-slate-500">
+                          {displayRole}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* DASHBOARD */}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        onDashboardClick?.();
+                      }}
+                      className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-[#F0FAFA] hover:text-[#0F766E]"
+                    >
+                      <LayoutDashboard size={18} />
+                      Dashboard
+                    </button>
+
+                    {/* LOGOUT */}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        onLogout?.();
+                      }}
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                    >
+                      <LogOut size={18} />
+                      Logout
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </header>
 
         {/* MAIN LAYOUT */}
@@ -308,19 +474,18 @@ function Canteen() {
           {/* LEFT SIDEBAR */}
 
           <aside className="border-b border-[#E5EEEE] bg-white p-5 lg:border-b-0 lg:border-r">
-
             <h2 className="mb-5 text-lg font-bold text-[#123D50]">
               Canteen Menu
             </h2>
 
             <div className="flex gap-2 overflow-x-auto lg:flex-col">
-
               {categories.map((category) => {
                 const Icon = category.icon;
 
                 return (
                   <button
                     key={category.name}
+                    type="button"
                     onClick={() =>
                       setActiveCategory(category.name)
                     }
@@ -335,14 +500,12 @@ function Canteen() {
                   </button>
                 );
               })}
-
             </div>
           </aside>
 
           {/* FOOD MENU */}
 
           <main className="min-w-0 bg-[#F7FAFA] p-5 sm:p-7">
-
             <div className="mb-7">
               <p className="mb-1 text-xs font-bold uppercase tracking-[2px] text-[#0F766E]">
                 Freshly prepared for you
@@ -358,27 +521,23 @@ function Canteen() {
             </div>
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 2xl:grid-cols-3">
-
               {filteredItems.map((item) => (
                 <div
                   key={item.id}
                   className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[#E3ECEA] bg-white p-3 shadow-[0_3px_12px_rgba(18,61,80,0.06)] transition duration-200 hover:-translate-y-1 hover:shadow-lg"
                 >
-
                   <img
                     src={item.image}
                     alt={item.name}
-                    className="h-40 w-full rounded-xl object-top"
+                    className="h-40 w-full rounded-xl object-cover object-center"
                   />
 
                   <div className="flex flex-1 flex-col px-1 pb-1 pt-3">
-
                     <h3 className="text-base font-bold text-[#123D50]">
                       {item.name}
                     </h3>
 
                     <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-
                       <span className="text-lg font-extrabold text-[#0F766E]">
                         ₹ {item.price}
                       </span>
@@ -386,10 +545,10 @@ function Canteen() {
                       <span className="rounded-full bg-[#E0F2F1] px-2.5 py-1 text-xs font-medium text-[#0F766E]">
                         {item.category}
                       </span>
-
                     </div>
 
                     <button
+                      type="button"
                       onClick={() => addToCart(item)}
                       className="mt-3 w-full rounded-full bg-[#0F766E] py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#123D50]"
                     >
@@ -398,7 +557,6 @@ function Canteen() {
                         Add to Cart
                       </span>
                     </button>
-
                   </div>
                 </div>
               ))}
@@ -408,7 +566,6 @@ function Canteen() {
                   No food items found.
                 </div>
               )}
-
             </div>
           </main>
 
@@ -417,7 +574,6 @@ function Canteen() {
           <aside className="min-w-0 border-t border-[#E5EEEE] bg-white p-6 sm:p-8 lg:border-l lg:border-t-0">
 
             <div className="mb-8 flex items-center justify-between gap-3">
-
               <div>
                 <h2 className="text-2xl font-extrabold text-[#123D50]">
                   Your Cart
@@ -431,16 +587,13 @@ function Canteen() {
               <span className="rounded-full bg-[#E0F2F1] px-4 py-2 text-sm font-bold text-[#0F766E]">
                 {cartCount} items
               </span>
-
             </div>
 
             {/* CART ITEMS */}
 
             <div className="space-y-7">
-
               {cart.length === 0 ? (
                 <div className="rounded-2xl bg-[#F7FAFA] px-4 py-12 text-center">
-
                   <ShoppingCart
                     size={42}
                     className="mx-auto mb-4 text-[#0F766E]"
@@ -453,7 +606,6 @@ function Canteen() {
                   <p className="mt-2 text-sm text-slate-500">
                     Add something delicious!
                   </p>
-
                 </div>
               ) : (
                 cart.map((item) => (
@@ -461,7 +613,6 @@ function Canteen() {
                     key={item.id}
                     className="flex min-w-0 items-center gap-4"
                   >
-
                     <img
                       src={item.image}
                       alt={item.name}
@@ -469,7 +620,6 @@ function Canteen() {
                     />
 
                     <div className="min-w-0 flex-1">
-
                       <h3 className="truncate text-base font-bold text-[#123D50]">
                         {item.name}
                       </h3>
@@ -477,12 +627,11 @@ function Canteen() {
                       <p className="mt-1 text-sm font-semibold text-[#0F766E]">
                         ₹ {item.price * item.quantity}
                       </p>
-
                     </div>
 
                     <div className="flex shrink-0 items-center gap-2">
-
                       <button
+                        type="button"
                         aria-label={`Remove one ${item.name}`}
                         onClick={() =>
                           changeQuantity(item.id, -1)
@@ -497,6 +646,7 @@ function Canteen() {
                       </span>
 
                       <button
+                        type="button"
                         aria-label={`Add one ${item.name}`}
                         onClick={() =>
                           changeQuantity(item.id, 1)
@@ -505,32 +655,23 @@ function Canteen() {
                       >
                         <Plus size={14} />
                       </button>
-
                     </div>
-
                   </div>
                 ))
               )}
-
             </div>
 
             {/* PICKUP TIME */}
 
             <label className="mb-4 mt-8 block text-sm font-bold text-[#123D50]">
-
               <span className="mb-3 flex items-center gap-2 text-base">
-                <Clock
-                  size={19}
-                  className="text-[#0F766E]"
-                />
+                <Clock size={19} className="text-[#0F766E]" />
                 Select Pickup Time
               </span>
 
               <select
                 value={pickupTime}
-                onChange={(e) =>
-                  setPickupTime(e.target.value)
-                }
+                onChange={(e) => setPickupTime(e.target.value)}
                 className="w-full rounded-xl border border-[#DCE8E7] bg-[#F8FBFB] px-4 py-3.5 text-sm font-medium text-[#123D50] outline-none transition focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10"
               >
                 <option>12:00 PM</option>
@@ -540,13 +681,11 @@ function Canteen() {
                 <option>01:00 PM</option>
                 <option>01:15 PM</option>
               </select>
-
             </label>
 
             {/* DELIVERY METHOD */}
 
             <div className="mt-6">
-
               <h3 className="mb-3 text-base font-bold text-[#123D50]">
                 How would you like to receive your order?
               </h3>
@@ -562,9 +701,7 @@ function Canteen() {
                       : "border-slate-200"
                   }`}
                 >
-
                   <div className="flex items-center gap-3">
-
                     <ShoppingBag
                       size={21}
                       className="text-[#0F766E]"
@@ -579,11 +716,9 @@ function Canteen() {
                         Collect food from the canteen
                       </p>
                     </div>
-
                   </div>
 
                   <div className="flex items-center gap-2">
-
                     <span className="text-xs font-bold text-green-600">
                       Free
                     </span>
@@ -593,12 +728,9 @@ function Canteen() {
                       name="deliveryMethod"
                       value="pickup"
                       checked={deliveryMethod === "pickup"}
-                      onChange={() =>
-                        setDeliveryMethod("pickup")
-                      }
+                      onChange={() => setDeliveryMethod("pickup")}
                       className="accent-[#0F766E]"
                     />
-
                   </div>
                 </label>
 
@@ -611,11 +743,8 @@ function Canteen() {
                       : "border-slate-200"
                   }`}
                 >
-
                   <label className="flex cursor-pointer items-center justify-between">
-
                     <div className="flex items-center gap-3">
-
                       <Truck
                         size={22}
                         className="text-[#0F766E]"
@@ -630,11 +759,9 @@ function Canteen() {
                           Get food delivered to your class
                         </p>
                       </div>
-
                     </div>
 
                     <div className="flex items-center gap-2">
-
                       <span className="text-xs font-bold text-amber-600">
                         + ₹20
                       </span>
@@ -644,19 +771,14 @@ function Canteen() {
                         name="deliveryMethod"
                         value="delivery"
                         checked={deliveryMethod === "delivery"}
-                        onChange={() =>
-                          setDeliveryMethod("delivery")
-                        }
+                        onChange={() => setDeliveryMethod("delivery")}
                         className="accent-[#0F766E]"
                       />
-
                     </div>
-
                   </label>
 
                   {deliveryMethod === "delivery" && (
                     <div className="mt-3">
-
                       <label className="mb-2 block text-xs font-semibold text-[#123D50]">
                         Enter Classroom / Room Number
                       </label>
@@ -664,9 +786,7 @@ function Canteen() {
                       <input
                         type="text"
                         value={classroom}
-                        onChange={(e) =>
-                          setClassroom(e.target.value)
-                        }
+                        onChange={(e) => setClassroom(e.target.value)}
                         placeholder="Example: Room 204"
                         className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#0F766E]"
                       />
@@ -674,21 +794,16 @@ function Canteen() {
                       <p className="mt-2 text-xs text-slate-500">
                         Additional delivery charge of ₹20 applies.
                       </p>
-
                     </div>
                   )}
-
                 </div>
-
               </div>
             </div>
 
             {/* PRICE SUMMARY */}
 
             <div className="my-8 space-y-3 border-y border-[#E5EEEE] py-6">
-
               <div className="flex items-center justify-between">
-
                 <span className="text-sm font-semibold text-slate-600">
                   Subtotal
                 </span>
@@ -696,11 +811,9 @@ function Canteen() {
                 <span className="font-bold text-[#123D50]">
                   ₹ {subtotal}
                 </span>
-
               </div>
 
               <div className="flex items-center justify-between">
-
                 <span className="text-sm font-semibold text-slate-600">
                   Delivery Charge
                 </span>
@@ -708,11 +821,9 @@ function Canteen() {
                 <span className="font-bold text-[#123D50]">
                   ₹ {deliveryFee}
                 </span>
-
               </div>
 
               <div className="flex items-center justify-between pt-2">
-
                 <span className="text-xl font-extrabold text-[#123D50]">
                   Total
                 </span>
@@ -720,14 +831,13 @@ function Canteen() {
                 <span className="text-3xl font-extrabold text-[#0F766E]">
                   ₹ {total}
                 </span>
-
               </div>
-
             </div>
 
             {/* PLACE ORDER */}
 
             <button
+              type="button"
               disabled={cart.length === 0}
               onClick={handlePlaceOrder}
               className={`mt-4 w-full rounded-full py-4 text-base font-bold text-white shadow-md transition ${
@@ -742,9 +852,7 @@ function Canteen() {
             <p className="mt-5 text-center text-sm text-slate-400">
               Fresh food, ready when you are!
             </p>
-
           </aside>
-
         </div>
       </div>
     </div>

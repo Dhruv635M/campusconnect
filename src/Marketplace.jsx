@@ -13,7 +13,8 @@ import {
   Tag,
   X,
   Eye,
-  MapPin,
+  UserCircle,
+  LogOut,
 } from "lucide-react";
 import ProductDetails from "./ProductDetails";
 
@@ -27,8 +28,7 @@ const initialProducts = [
     category: "Electronics",
     type: "For Sale",
     condition: "Used",
-    image:
-      "Macbook-air.jpg",
+    image: "/Macbook-air.jpg",
     description:
       "MacBook Air M1 in excellent working condition. Ideal for students.",
   },
@@ -39,8 +39,7 @@ const initialProducts = [
     category: "Books",
     type: "For Sale",
     condition: "Used",
-    image:
-      "Books.jpg",
+    image: "/Books.jpg",
     description:
       "Collection of useful college textbooks in good condition.",
   },
@@ -51,8 +50,7 @@ const initialProducts = [
     category: "Others",
     type: "For Sale",
     condition: "Used",
-    image:
-      "Guitar.jpg",
+    image: "/Guitar.jpg",
     description:
       "Acoustic guitar suitable for beginners and music enthusiasts.",
   },
@@ -63,8 +61,7 @@ const initialProducts = [
     category: "Clothing & Accessories",
     type: "For Sale",
     condition: "New",
-    image:
-      "Bag.jpg",
+    image: "/Bag.jpg",
     description:
       "Spacious backpack with multiple compartments.",
   },
@@ -75,8 +72,7 @@ const initialProducts = [
     category: "Electronics",
     type: "For Sale",
     condition: "Used",
-    image:
-      "Earbuds.jpg",
+    image: "/Earbuds.jpg",
     description:
       "Wireless earbuds with charging case.",
   },
@@ -87,8 +83,7 @@ const initialProducts = [
     category: "Others",
     type: "For Sale",
     condition: "Used",
-    image:
-      "Table.jpg",
+    image: "/Table.jpg",
     description:
       "Compact study table, perfect for a student room.",
   },
@@ -106,10 +101,36 @@ const categories = [
   { name: "Others", icon: Tag },
 ];
 
+// GET USER INITIALS
+
+const getInitials = (name = "") => {
+  return (
+    name
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0].toUpperCase())
+      .join("") || "U"
+  );
+};
+
+// FORMAT USER ROLE
+
+const formatRole = (role) => {
+  const roles = {
+    student: "Student",
+    faculty: "Faculty",
+    teacher: "Faculty",
+    admin: "Admin",
+  };
+
+  return roles[role?.toLowerCase()] || "Member";
+};
 
 // MAIN MARKETPLACE COMPONENT
 
-function Marketplace({ onBack }) {
+function Marketplace({ user, onBack, onLogout }) {
   const [products, setProducts] = useState(initialProducts);
 
   const [activeCategory, setActiveCategory] =
@@ -120,6 +141,7 @@ function Marketplace({ onBack }) {
 
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showPostForm, setShowPostForm] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   const [newProduct, setNewProduct] = useState({
     name: "",
@@ -130,6 +152,14 @@ function Marketplace({ onBack }) {
     image: "",
     description: "",
   });
+
+  // LOGGED-IN USER DETAILS
+
+  const displayName = user?.name?.trim() || "User";
+  const displayEmail = user?.email || "";
+  const displayRole = formatRole(user?.role);
+  const profileImage = user?.profileImage || "";
+  const initials = getInitials(displayName);
 
   // FILTER PRODUCTS
 
@@ -143,8 +173,9 @@ function Marketplace({ onBack }) {
         activeFilter === "All" ||
         product.type === activeFilter;
 
-      const matchesSearch =
-        product.name.toLowerCase().includes(search.toLowerCase());
+      const matchesSearch = product.name
+        .toLowerCase()
+        .includes(search.toLowerCase());
 
       return (
         matchesCategory &&
@@ -159,6 +190,20 @@ function Marketplace({ onBack }) {
   const formatPrice = (price) =>
     `₹ ${Number(price).toLocaleString("en-IN")}`;
 
+  // RESET PRODUCT FORM
+
+  const resetProductForm = () => {
+    setNewProduct({
+      name: "",
+      price: "",
+      category: "Electronics",
+      type: "For Sale",
+      condition: "New",
+      image: "",
+      description: "",
+    });
+  };
+
   // POST NEW PRODUCT
 
   const handlePostItem = (e) => {
@@ -170,27 +215,19 @@ function Marketplace({ onBack }) {
       price: Number(newProduct.price),
       image:
         newProduct.image.trim() ||
-        "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=600",
+        "/Macbook-air.jpg",
     };
 
     setProducts((prev) => [product, ...prev]);
 
-    setNewProduct({
-      name: "",
-      price: "",
-      category: "Electronics",
-      type: "For Sale",
-      condition: "New",
-      image: "",
-      description: "",
-    });
-
+    resetProductForm();
     setShowPostForm(false);
     setActiveCategory("All Categories");
     setActiveFilter("All");
     setSearch("");
   };
-      // OPEN FULL PRODUCT DETAILS PAGE
+
+  // PRODUCT DETAILS PAGE
 
   if (selectedProduct) {
     return (
@@ -199,19 +236,22 @@ function Marketplace({ onBack }) {
         product={selectedProduct}
         products={products}
         onBack={() => setSelectedProduct(null)}
-        onSelectProduct={(product) => setSelectedProduct(product)}
+        onSelectProduct={(product) =>
+          setSelectedProduct(product)
+        }
       />
     );
   }
+
   return (
     <div className="min-h-screen bg-[#F5F8F8] text-[#123D50]">
 
-      {/* ================= HEADER ================= */}
+      {/* HEADER */}
 
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
         <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-3 px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:gap-6 lg:px-8">
 
-          {/* CAMPUSCONNECT LOGO */}
+          {/* LOGO */}
 
           <button
             type="button"
@@ -254,29 +294,138 @@ function Marketplace({ onBack }) {
             )}
           </div>
 
-          {/* POST ITEM BUTTON */}
+          {/* RIGHT SIDE */}
 
-          <button
-            type="button"
-            onClick={() => setShowPostForm(true)}
-            className="flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#0F766E] px-5 text-sm font-bold text-white shadow-sm transition hover:bg-[#123D50]"
-          >
-            <Plus size={19} />
-            Post Item
-          </button>
+          <div className="flex shrink-0 items-center justify-between gap-3">
 
+            {/* POST ITEM BUTTON */}
+
+            <button
+              type="button"
+              onClick={() => setShowPostForm(true)}
+              className="flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#0F766E] px-5 text-sm font-bold text-white shadow-sm transition hover:bg-[#123D50]"
+            >
+              <Plus size={19} />
+              Post Item
+            </button>
+
+            {/* USER PROFILE */}
+
+            <div className="relative">
+
+              <button
+                type="button"
+                onClick={() =>
+                  setShowProfileMenu((prev) => !prev)
+                }
+                className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 transition hover:bg-slate-50"
+              >
+                {profileImage ? (
+                  <img
+                    src={profileImage}
+                    alt={displayName}
+                    className="h-8 w-8 rounded-full border border-slate-200 object-cover"
+                  />
+                ) : (
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#E0F2F1] text-xs font-bold text-[#0F766E]">
+                    {initials}
+                  </div>
+                )}
+
+                <span className="hidden max-w-[110px] truncate text-sm font-semibold text-[#123D50] sm:block">
+                  {displayName}
+                </span>
+
+              </button>
+
+              {/* PROFILE DROPDOWN */}
+
+              {showProfileMenu && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowProfileMenu(false)}
+                  />
+
+                  <div className="absolute right-0 top-14 z-50 w-64 rounded-xl border border-slate-200 bg-white p-3 shadow-xl">
+
+                    {/* PROFILE INFORMATION */}
+
+                    <div className="flex items-center gap-3 border-b border-slate-100 px-2 pb-3">
+
+                      {profileImage ? (
+                        <img
+                          src={profileImage}
+                          alt={displayName}
+                          className="h-11 w-11 shrink-0 rounded-full border border-slate-200 object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#E0F2F1] font-bold text-[#0F766E]">
+                          {initials}
+                        </div>
+                      )}
+
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-bold text-[#123D50]">
+                          {displayName}
+                        </p>
+
+                        <p className="text-xs text-slate-500">
+                          {displayRole}
+                        </p>
+
+                        {displayEmail && (
+                          <p className="mt-0.5 truncate text-xs text-slate-400">
+                            {displayEmail}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* DASHBOARD */}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        onBack?.();
+                      }}
+                      className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-[#123D50]"
+                    >
+                      <UserCircle size={17} />
+                      Dashboard
+                    </button>
+
+                    {/* LOGOUT */}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        onLogout?.();
+                      }}
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                    >
+                      <LogOut size={17} />
+                      Logout
+                    </button>
+
+                  </div>
+                </>
+              )}
+
+            </div>
+          </div>
         </div>
       </header>
 
-
-      {/* ================= MAIN CONTENT ================= */}
+      {/* MAIN CONTENT */}
 
       <main className="mx-auto w-full max-w-[1500px] px-4 py-7 sm:px-6 lg:px-8 lg:py-9">
 
         {/* PAGE HEADING */}
 
         <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-
           <div>
             <p className="mb-2 text-xs font-bold uppercase tracking-[2px] text-[#0F766E]">
               Student Marketplace
@@ -295,15 +444,13 @@ function Marketplace({ onBack }) {
             <ShoppingCart size={17} />
             Marketplace
           </div>
-
         </div>
-
 
         {/* SIDEBAR AND PRODUCTS */}
 
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-7">
 
-          {/* ================= SIDEBAR ================= */}
+          {/* SIDEBAR */}
 
           <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
 
@@ -315,7 +462,6 @@ function Marketplace({ onBack }) {
 
               {categories.map((category) => {
                 const Icon = category.icon;
-
                 const active =
                   activeCategory === category.name;
 
@@ -344,8 +490,7 @@ function Marketplace({ onBack }) {
             </div>
           </aside>
 
-
-          {/* ================= PRODUCT SECTION ================= */}
+          {/* PRODUCT SECTION */}
 
           <section className="min-w-0">
 
@@ -354,7 +499,6 @@ function Marketplace({ onBack }) {
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
 
               <div className="flex flex-wrap gap-2">
-
                 {["All", "For Sale", "For Rent"].map((filter) => (
                   <button
                     key={filter}
@@ -369,7 +513,6 @@ function Marketplace({ onBack }) {
                     {filter}
                   </button>
                 ))}
-
               </div>
 
               <p className="text-sm text-slate-500">
@@ -378,21 +521,16 @@ function Marketplace({ onBack }) {
 
             </div>
 
-
             {/* PRODUCT GRID */}
 
             {filteredProducts.length > 0 ? (
-
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
 
                 {filteredProducts.map((product) => (
-
                   <article
                     key={product.id}
                     className="group min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#B7D8D0] hover:shadow-md"
                   >
-
-                    {/* PRODUCT IMAGE */}
 
                     <div className="relative overflow-hidden rounded-xl bg-slate-100">
 
@@ -402,22 +540,15 @@ function Marketplace({ onBack }) {
                         className="h-40 w-full object-contain transition duration-500 group-hover:scale-105"
                       />
 
-                      {/* CONDITION */}
-
                       <span className="absolute left-3 top-3 rounded-md bg-white px-2.5 py-1 text-[11px] font-semibold text-[#123D50] shadow-sm">
                         {product.condition}
                       </span>
-
-                      {/* SALE OR RENT */}
 
                       <span className="absolute right-3 top-3 rounded-md bg-[#0F766E] px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
                         {product.type}
                       </span>
 
                     </div>
-
-
-                    {/* PRODUCT INFORMATION */}
 
                     <div className="px-1 pb-1 pt-4">
 
@@ -439,9 +570,6 @@ function Marketplace({ onBack }) {
                         )}
                       </p>
 
-
-                      {/* PRODUCT BUTTONS */}
-
                       <div className="mt-4 flex gap-2">
 
                         <button
@@ -462,23 +590,18 @@ function Marketplace({ onBack }) {
                           }
                           className="shrink-0 rounded-lg bg-[#123D50] px-5 py-2.5 text-xs font-bold text-white transition hover:bg-[#0F766E]"
                         >
-                          {product.type === "For Rent" ? "Rent" : "Buy"}
+                          {product.type === "For Rent"
+                            ? "Rent"
+                            : "Buy"}
                         </button>
 
                       </div>
-
                     </div>
-
                   </article>
-
                 ))}
 
               </div>
-
             ) : (
-
-              /* EMPTY SEARCH RESULTS */
-
               <div className="flex min-h-[300px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white px-5 text-center">
 
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#E0F2F1] text-[#0F766E]">
@@ -506,113 +629,19 @@ function Marketplace({ onBack }) {
                 </button>
 
               </div>
-
             )}
 
           </section>
-
         </div>
       </main>
 
-
-      {/* ================= PRODUCT DETAILS MODAL ================= */}
-
-      {selectedProduct && (
-
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"
-          onClick={() => setSelectedProduct(null)}
-        >
-
-          <div
-            className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl sm:p-7"
-            onClick={(e) => e.stopPropagation()}
-          >
-
-            <button
-              type="button"
-              onClick={() => setSelectedProduct(null)}
-              className="absolute right-4 top-4 z-10 rounded-full bg-white p-2 text-slate-600 shadow hover:bg-slate-100"
-            >
-              <X size={19} />
-            </button>
-
-            <img
-              src={selectedProduct.image}
-              alt={selectedProduct.name}
-              className="h-56 w-full rounded-xl object-cover"
-            />
-
-            <p className="mt-5 text-xs font-semibold uppercase tracking-widest text-[#0F766E]">
-              {selectedProduct.category}
-            </p>
-
-            <h2 className="mt-2 text-2xl font-bold text-[#123D50]">
-              {selectedProduct.name}
-            </h2>
-
-            <p className="mt-3 text-2xl font-bold text-[#0F766E]">
-              {formatPrice(selectedProduct.price)}
-
-              {selectedProduct.type === "For Rent" && (
-                <span className="text-sm font-medium text-slate-500">
-                  {" "}/ day
-                </span>
-              )}
-            </p>
-
-            <div className="mt-4 flex flex-wrap gap-2">
-
-              <span className="rounded-full bg-[#E0F2F1] px-3 py-1.5 text-xs font-semibold text-[#0F766E]">
-                {selectedProduct.type}
-              </span>
-
-              <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600">
-                {selectedProduct.condition}
-              </span>
-
-            </div>
-
-            <p className="mt-5 text-sm leading-7 text-slate-600">
-              {selectedProduct.description}
-            </p>
-
-            <div className="mt-5 flex items-center gap-2 rounded-xl bg-slate-50 p-3 text-sm text-slate-500">
-              <MapPin size={17} />
-              Available within campus
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                alert(
-                  "Purchase functionality will be connected later."
-                );
-                setSelectedProduct(null);
-              }}
-              className="mt-6 w-full rounded-xl bg-[#123D50] py-3.5 text-sm font-bold text-white transition hover:bg-[#0F766E]"
-            >
-              {selectedProduct.type === "For Rent"
-                ? "Rent Item"
-                : "Buy Item"}
-            </button>
-
-          </div>
-
-        </div>
-
-      )}
-
-
-      {/* ================= POST ITEM MODAL ================= */}
+      {/* POST ITEM MODAL */}
 
       {showPostForm && (
-
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"
           onClick={() => setShowPostForm(false)}
         >
-
           <form
             onSubmit={handlePostItem}
             onClick={(e) => e.stopPropagation()}
@@ -639,7 +668,6 @@ function Marketplace({ onBack }) {
               Add your product details to list it on CampusConnect.
             </p>
 
-
             <div className="mt-6 space-y-4">
 
               {/* PRODUCT NAME */}
@@ -663,7 +691,6 @@ function Marketplace({ onBack }) {
                 />
               </div>
 
-
               {/* PRICE */}
 
               <div>
@@ -686,7 +713,6 @@ function Marketplace({ onBack }) {
                   className="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#0F766E]"
                 />
               </div>
-
 
               {/* CATEGORY AND TYPE */}
 
@@ -718,7 +744,6 @@ function Marketplace({ onBack }) {
                   </select>
                 </div>
 
-
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-slate-700">
                     Listing Type
@@ -740,7 +765,6 @@ function Marketplace({ onBack }) {
                 </div>
 
               </div>
-
 
               {/* CONDITION */}
 
@@ -765,7 +789,6 @@ function Marketplace({ onBack }) {
                 </select>
               </div>
 
-
               {/* IMAGE URL */}
 
               <div>
@@ -786,7 +809,6 @@ function Marketplace({ onBack }) {
                   className="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none focus:border-[#0F766E]"
                 />
               </div>
-
 
               {/* DESCRIPTION */}
 
@@ -811,9 +833,6 @@ function Marketplace({ onBack }) {
 
             </div>
 
-
-            {/* SUBMIT */}
-
             <button
               type="submit"
               className="mt-6 w-full rounded-xl bg-[#0F766E] py-3.5 text-sm font-bold text-white transition hover:bg-[#123D50]"
@@ -822,9 +841,7 @@ function Marketplace({ onBack }) {
             </button>
 
           </form>
-
         </div>
-
       )}
 
     </div>

@@ -8,19 +8,23 @@ import {
   Users,
   Store,
   CalendarDays,
-  Building2
+  Building2,
+  UserCircle,
+  LogOut
 } from "lucide-react";
 
 import { useState } from "react";
+
 import Auth from "./Auth";
 import Canteen from "./Canteen";
 import About from "./About";
 import Marketplace from "./Marketplace";
+import StudentDashboard from "./StudentDashboard";
 
 
-// HERO SECTION
+// ================= HERO SECTION =================
 
-function Hero() {
+function Hero({ onGetStarted, loggedInUser }) {
   return (
     <section
       id="home"
@@ -31,6 +35,7 @@ function Hero() {
       }}
     >
       <div className="max-w-3xl text-white">
+
         <p className="mb-4 text-sm font-semibold uppercase tracking-[4px] text-teal-200">
           Your Campus, Your Community
         </p>
@@ -49,20 +54,25 @@ function Hero() {
 
         <button
           type="button"
+          onClick={onGetStarted}
           className="!inline-flex !h-14 !w-auto !min-w-[150px] !items-center !justify-center !gap-2 !whitespace-nowrap !rounded-full !border-0 !bg-teal-600 !px-8 !py-0 !text-lg !font-bold !leading-none !text-white !shadow-lg transition hover:!bg-teal-500"
         >
-          <span className="text-xl">Get Started</span>
+          <span className="text-xl">
+            {loggedInUser ? "Go to Dashboard" : "Get Started"}
+          </span>
           <span className="text-2xl">→</span>
         </button>
+
       </div>
     </section>
   );
 }
 
 
-// FEATURES COMPONENT
+// ================= FEATURES COMPONENT =================
 
 function Features({ onCanteenClick, onMarketplaceClick }) {
+
   const cardStyle = {
     width: "270px",
     maxWidth: "100%",
@@ -86,7 +96,9 @@ function Features({ onCanteenClick, onMarketplaceClick }) {
         padding: "65px 24px 80px",
       }}
     >
+
       <div style={{ textAlign: "center", marginBottom: "55px" }}>
+
         <p className="mb-3 font-semibold uppercase tracking-widest text-teal-700">
           Explore CampusConnect
         </p>
@@ -102,6 +114,7 @@ function Features({ onCanteenClick, onMarketplaceClick }) {
         <p className="mt-3 text-slate-600">
           One platform to make your campus life easier and smarter.
         </p>
+
       </div>
 
       <div
@@ -117,6 +130,7 @@ function Features({ onCanteenClick, onMarketplaceClick }) {
       >
 
         {/* CAMPUS HUB */}
+
         <div style={cardStyle}>
           <House size={42} className="mb-5 text-teal-700" />
 
@@ -131,6 +145,7 @@ function Features({ onCanteenClick, onMarketplaceClick }) {
 
 
         {/* MARKETPLACE */}
+
         <div
           style={{
             ...cardStyle,
@@ -170,6 +185,7 @@ function Features({ onCanteenClick, onMarketplaceClick }) {
 
 
         {/* CANTEEN */}
+
         <div
           style={{
             ...cardStyle,
@@ -191,6 +207,7 @@ function Features({ onCanteenClick, onMarketplaceClick }) {
 
 
         {/* ATTENDANCE */}
+
         <div style={cardStyle}>
           <QrCode size={42} className="mb-5 text-teal-700" />
 
@@ -209,9 +226,10 @@ function Features({ onCanteenClick, onMarketplaceClick }) {
 }
 
 
-// STATISTICS COMPONENT
+// ================= STATISTICS COMPONENT =================
 
 function Stats() {
+
   const stats = [
     { number: "500+", label: "Active Students", icon: Users },
     { number: "100+", label: "Marketplace Listings", icon: Store },
@@ -242,6 +260,7 @@ function Stats() {
         padding: "0px 24px 65px",
       }}
     >
+
       <div
         style={{
           display: "grid",
@@ -253,11 +272,13 @@ function Stats() {
           margin: "0 auto",
         }}
       >
+
         {stats.map((stat, index) => {
           const Icon = stat.icon;
 
           return (
             <div key={index} style={cardStyle}>
+
               <div className="mb-3 rounded-full bg-[#E0F2F1] p-3">
                 <Icon size={32} className="text-[#0F766E]" />
               </div>
@@ -269,123 +290,349 @@ function Stats() {
               <p className="mt-2 text-base font-medium text-slate-600">
                 {stat.label}
               </p>
+
             </div>
           );
         })}
+
       </div>
     </section>
   );
 }
 
 
-// NAVBAR COMPONENT
+// ================= NAVBAR COMPONENT =================
 
-function Navbar({ onAuthClick, onAboutClick }) {
+function Navbar({
+  onAuthClick,
+  onAboutClick,
+  loggedInUser,
+  onDashboardClick,
+  onLogout
+}) {
+
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-8 h-20 flex items-center justify-between">
+    <nav className="sticky top-0 z-50 border-b border-gray-100 bg-white shadow-sm">
+
+      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-8">
 
         {/* LOGO */}
+
         <div className="flex items-center gap-3">
-          <div className="bg-[#E0F2F1] p-2 rounded-xl">
+
+          <div className="rounded-xl bg-[#E0F2F1] p-2">
             <GraduationCap size={36} className="text-[#123D50]" />
           </div>
 
           <h1 className="text-2xl font-extrabold text-[#123D50]">
             CampusConnect
           </h1>
+
         </div>
 
+
         {/* NAVIGATION LINKS */}
-        <div className="hidden md:flex items-center gap-14 text-base font-semibold text-slate-600">
+
+        <div className="hidden items-center gap-14 text-base font-semibold text-slate-600 md:flex">
 
           <a href="#home" className="text-[#0F766E]">
             Home
           </a>
 
-          <a href="#features" className="hover:text-[#0F766E] transition">
+          <a href="#features" className="transition hover:text-[#0F766E]">
             Features
           </a>
 
           <button
             onClick={onAboutClick}
-            className="hover:text-[#0F766E] transition"
+            className="transition hover:text-[#0F766E]"
           >
             About
           </button>
 
-          <a href="#contact" className="hover:text-[#0F766E] transition">
+          <a href="#contact" className="transition hover:text-[#0F766E]">
             Contact
           </a>
 
         </div>
 
-        {/* LOGIN AND SIGNUP */}
-        <div className="flex items-center gap-4 pr-2">
 
-          <button
-            onClick={() => onAuthClick("login")}
-            className="inline-flex min-w-[120px] items-center justify-center whitespace-nowrap rounded-full border-2 border-teal-700 px-6 py-3 text-base font-semibold text-teal-800 transition hover:bg-teal-50"
-          >
-            Login
-          </button>
+        {/* AUTHENTICATED / GUEST NAVIGATION */}
 
-          <button
-            onClick={() => onAuthClick("register")}
-            className="inline-flex min-w-[120px] items-center justify-center whitespace-nowrap rounded-full bg-teal-700 px-6 py-3 text-base font-semibold text-white transition hover:bg-teal-800"
-          >
-            Sign Up
-          </button>
+        <div className="flex items-center gap-3">
+
+          {loggedInUser ? (
+
+            <>
+              <button
+                onClick={onDashboardClick}
+                className="flex items-center gap-2 rounded-full border border-[#CBD5E1] px-4 py-2.5 font-semibold text-[#123D50] transition hover:bg-[#E0F2F1]"
+              >
+                {loggedInUser.profileImage ? (
+                  <img
+                    src={loggedInUser.profileImage}
+                    alt="Profile"
+                    className="h-7 w-7 rounded-full object-cover"
+                  />
+                ) : (
+                  <UserCircle size={22} className="text-teal-700" />
+                )}
+
+                <span className="max-w-[130px] truncate">
+                  {loggedInUser.name || "User"}
+                </span>
+              </button>
+
+              <button
+                onClick={onLogout}
+                title="Logout"
+                className="flex items-center gap-2 rounded-full bg-teal-700 px-4 py-3 font-semibold text-white transition hover:bg-teal-800"
+              >
+                <LogOut size={18} />
+                <span className="hidden sm:inline">Logout</span>
+              </button>
+            </>
+
+          ) : (
+
+            <>
+              <button
+                onClick={() => onAuthClick("login")}
+                className="inline-flex min-w-[120px] items-center justify-center whitespace-nowrap rounded-full border-2 border-teal-700 px-6 py-3 text-base font-semibold text-teal-800 transition hover:bg-teal-50"
+              >
+                Login
+              </button>
+
+              <button
+                onClick={() => onAuthClick("register")}
+                className="inline-flex min-w-[120px] items-center justify-center whitespace-nowrap rounded-full bg-teal-700 px-6 py-3 text-base font-semibold text-white transition hover:bg-teal-800"
+              >
+                Sign Up
+              </button>
+            </>
+
+          )}
 
         </div>
+
       </div>
     </nav>
   );
 }
 
 
-// MAIN APP COMPONENT
+// ================= MAIN APP COMPONENT =================
 
 function App() {
+
   const [authMode, setAuthMode] = useState(null);
   const [currentPage, setCurrentPage] = useState("home");
 
-  // MARKETPLACE PAGE
-  if (currentPage === "marketplace") {
+  // RESTORE LOGGED-IN USER
+
+  const [loggedInUser, setLoggedInUser] = useState(() => {
+    try {
+      return JSON.parse(
+        localStorage.getItem("campusCurrentUser") || "null"
+      );
+    } catch {
+      return null;
+    }
+  });
+
+  // REMEMBER PREVIOUS PAGE
+
+  const [previousPage, setPreviousPage] = useState("home");
+
+  // ROLE LABEL
+
+  const getRoleLabel = (role) => {
+    const roles = {
+      student: "Student",
+      teacher: "Teacher",
+      faculty: "Teacher",
+      admin: "Admin",
+    };
+
+    return roles[(role || "").toLowerCase()] || "User";
+  };
+
+  // OPEN MARKETPLACE
+
+  const openMarketplace = () => {
+    setPreviousPage(currentPage);
+    setCurrentPage("marketplace");
+  };
+
+  // LOGIN / REGISTER SUCCESS
+
+  const handleAuthSuccess = (user) => {
+
+    const updatedUser = {
+      ...user,
+      name: user.name?.trim() || "User",
+      role: (user.role || "student").toLowerCase(),
+    };
+
+    localStorage.setItem(
+      "campusCurrentUser",
+      JSON.stringify(updatedUser)
+    );
+
+    setLoggedInUser(updatedUser);
+    setAuthMode(null);
+    setCurrentPage("dashboard");
+  };
+
+  // UPDATE USER PROFILE
+
+  const handleUserUpdate = (updatedUser) => {
+    const mergedUser = {
+      ...loggedInUser,
+      ...updatedUser,
+    };
+
+    localStorage.setItem(
+      "campusCurrentUser",
+      JSON.stringify(mergedUser)
+    );
+
+    setLoggedInUser(mergedUser);
+  };
+
+  // LOGOUT
+
+  const handleLogout = () => {
+
+    localStorage.removeItem("campusCurrentUser");
+
+    setLoggedInUser(null);
+    setAuthMode(null);
+    setCurrentPage("home");
+    setPreviousPage("home");
+  };
+
+  // AUTH PAGE
+
+  if (authMode) {
     return (
-      <Marketplace onBack={() => setCurrentPage("home")} />
+      <Auth
+        key={authMode}
+        initialMode={authMode}
+        onAuthSuccess={handleAuthSuccess}
+      />
     );
   }
 
-  // AUTH PAGE
-  if (authMode) {
-    return <Auth key={authMode} initialMode={authMode} />;
+  // STUDENT DASHBOARD
+
+  if (currentPage === "dashboard") {
+
+    if (!loggedInUser) {
+      return (
+        <Auth
+          initialMode="login"
+          onAuthSuccess={handleAuthSuccess}
+        />
+      );
+    }
+
+    return (
+      <StudentDashboard
+        user={loggedInUser}
+        studentName={loggedInUser.name}
+        course={getRoleLabel(loggedInUser.role)}
+        onUserUpdate={handleUserUpdate}
+        onLogout={handleLogout}
+        onNavigate={(page) => {
+
+          if (page === "Dashboard") {
+            setCurrentPage("dashboard");
+          }
+
+          else if (page === "Marketplace") {
+            openMarketplace();
+          }
+
+          else if (page === "Canteen") {
+            setCurrentPage("canteen");
+          }
+
+          else {
+            alert(`${page} module will be connected soon.`);
+          }
+
+        }}
+      />
+    );
+  }
+
+  // MARKETPLACE PAGE
+
+  if (currentPage === "marketplace") {
+
+    return (
+      <Marketplace
+        user={loggedInUser}
+        onBack={() => setCurrentPage(previousPage)}
+        onLogout={handleLogout}
+      />
+    );
   }
 
   // CANTEEN PAGE
+
   if (currentPage === "canteen") {
-    return <Canteen />;
+
+    return (
+      <Canteen
+        user={loggedInUser}
+        onLogout={handleLogout}
+        onDashboardClick={() => setCurrentPage("dashboard")}
+      />
+    );
   }
 
   // ABOUT PAGE
+
   if (currentPage === "about") {
-    return <About onBack={() => setCurrentPage("home")} />;
+
+    return (
+      <About
+        onBack={() => setCurrentPage("home")}
+      />
+    );
   }
 
   // HOME PAGE
+
   return (
     <div className="min-h-screen bg-[#F0FAFA]">
 
       <Navbar
         onAuthClick={setAuthMode}
         onAboutClick={() => setCurrentPage("about")}
+        loggedInUser={loggedInUser}
+        onDashboardClick={() => setCurrentPage("dashboard")}
+        onLogout={handleLogout}
       />
 
-      <Hero />
+      <Hero
+        loggedInUser={loggedInUser}
+        onGetStarted={() => {
+
+          if (loggedInUser) {
+            setCurrentPage("dashboard");
+          } else {
+            setAuthMode("login");
+          }
+
+        }}
+      />
 
       <Features
         onCanteenClick={() => setCurrentPage("canteen")}
-        onMarketplaceClick={() => setCurrentPage("marketplace")}
+        onMarketplaceClick={openMarketplace}
       />
 
       <Stats />
