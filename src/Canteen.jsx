@@ -133,18 +133,23 @@ function Canteen({ user, onDashboardClick, onLogout }) {
 
   // LOAD PREVIOUS ORDER
 
-  const [currentOrder, setCurrentOrder] = useState(() => {
+  const [orders, setOrders] = useState(() => {
     try {
-      const savedOrder = localStorage.getItem(
-        "campusconnectCurrentOrder"
+      const savedOrders = JSON.parse(
+        localStorage.getItem("campusconnectOrders") || "[]"
       );
+      if (Array.isArray(savedOrders) && savedOrders.length) return savedOrders;
 
-      return savedOrder ? JSON.parse(savedOrder) : null;
+      // Migrate the previous single-order format, if one exists.
+      const legacyOrder = localStorage.getItem("campusconnectCurrentOrder");
+      return legacyOrder ? [JSON.parse(legacyOrder)] : [];
     } catch (error) {
-      console.error("Could not load saved order:", error);
-      return null;
+      console.error("Could not load saved orders:", error);
+      return [];
     }
   });
+
+  const currentOrder = orders[0] || null;
 
   // FILTER FOOD ITEMS
 
@@ -245,15 +250,19 @@ function Canteen({ user, onDashboardClick, onLogout }) {
 
       pickupTime,
       date: new Date().toLocaleDateString(),
+      createdAt: new Date().toISOString(),
+      customerName: displayName,
+      customerRole: displayRole,
       status: 0,
     };
 
-    setCurrentOrder(orderDetails);
+    const updatedOrders = [orderDetails, ...orders];
+    setOrders(updatedOrders);
 
-    localStorage.setItem(
-      "campusconnectCurrentOrder",
-      JSON.stringify(orderDetails)
-    );
+    // Keep the complete order history and the legacy latest-order key.
+    localStorage.setItem("campusconnectOrders", JSON.stringify(updatedOrders));
+    localStorage.setItem("campusconnectCurrentOrder", JSON.stringify(orderDetails));
+    window.dispatchEvent(new Event("campusconnectOrdersUpdated"));
 
     setCart([]);
     setDeliveryMethod("pickup");
@@ -265,11 +274,6 @@ function Canteen({ user, onDashboardClick, onLogout }) {
   // OPEN ORDER TRACKING
 
   const handleTrackOrders = () => {
-    if (!currentOrder) {
-      alert("You haven't placed an order yet.");
-      return;
-    }
-
     setShowTracking(true);
   };
 
@@ -279,6 +283,15 @@ function Canteen({ user, onDashboardClick, onLogout }) {
     return (
       <OrderTracking
         order={currentOrder}
+        orders={orders}
+        onOrdersChange={(updatedOrders) => {
+          setOrders(updatedOrders);
+          localStorage.setItem("campusconnectOrders", JSON.stringify(updatedOrders));
+          localStorage.setItem(
+            "campusconnectCurrentOrder",
+            JSON.stringify(updatedOrders[0] || null)
+          );
+        }}
         onBack={() => setShowTracking(false)}
       />
     );

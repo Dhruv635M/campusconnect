@@ -42,6 +42,406 @@ import ProfileSettings from "./ProfileSettings";
 import Attendance from "./Attendance";
 
 // ======================================================
+// CANTEEN ORDER MANAGEMENT
+// ======================================================
+
+const CAMPUS_ORDERS_KEY = "campusconnectOrders";
+const CAMPUS_CURRENT_ORDER_KEY = "campusconnectCurrentOrder";
+
+const ORDER_STATUS_LABELS = [
+  "Order Placed",
+  "Order Confirmed",
+  "Preparing",
+  "Ready",
+  "Completed",
+];
+
+function readCampusOrders() {
+  try {
+    const savedOrders = JSON.parse(
+      localStorage.getItem(CAMPUS_ORDERS_KEY) || "[]"
+    );
+
+    const orders = Array.isArray(savedOrders)
+      ? savedOrders
+      : savedOrders
+        ? [savedOrders]
+        : [];
+
+    const currentOrder = JSON.parse(
+      localStorage.getItem(CAMPUS_CURRENT_ORDER_KEY) || "null"
+    );
+
+    if (
+      currentOrder &&
+      !orders.some(
+        (order) =>
+          String(order.id || order.orderId) ===
+          String(currentOrder.id || currentOrder.orderId)
+      )
+    ) {
+      orders.unshift(currentOrder);
+    }
+
+    return orders;
+  } catch (error) {
+    console.error("Could not read CampusConnect orders:", error);
+    return [];
+  }
+}
+
+// ======================================================
+// CANTEEN ORDERS PANEL
+// ======================================================
+
+function CanteenOrdersPanel({ orders, onStatusUpdate, onRefresh }) {
+  const getOrderStatus = (order) => {
+    const rawStatus = order.status;
+    const textStatus = String(order.statusText || "")
+      .trim()
+      .toLowerCase();
+
+    // Status 5 means Cancelled.
+    if (
+      rawStatus === 5 ||
+      String(rawStatus).trim() === "5" ||
+      textStatus.includes("cancel") ||
+      String(rawStatus || "").toLowerCase() === "cancelled"
+    ) {
+      return "Cancelled";
+    }
+
+    // Handle numeric statuses.
+    if (typeof rawStatus === "number" && Number.isFinite(rawStatus)) {
+      if (rawStatus >= 5) return "Cancelled";
+      if (rawStatus >= 4) return "Completed";
+
+      return (
+        ORDER_STATUS_LABELS[Math.max(rawStatus, 0)] ||
+        "Order Placed"
+      );
+    }
+
+    // Handle text-based statuses.
+    const value = String(
+      textStatus || rawStatus || "Order Placed"
+    )
+      .trim()
+      .toLowerCase();
+
+    if (value.includes("cancel")) return "Cancelled";
+    if (value.includes("confirm")) return "Order Confirmed";
+    if (value.includes("prepar")) return "Preparing";
+    if (value.includes("ready")) return "Ready";
+
+    if (
+      value.includes("complete") ||
+      value.includes("deliver") ||
+      value.includes("picked")
+    ) {
+      return "Completed";
+    }
+
+    // Handle numeric statuses saved as strings.
+    if (/^\d+$/.test(value)) {
+      const numericStatus = Number(value);
+
+      if (numericStatus >= 5) return "Cancelled";
+      if (numericStatus >= 4) return "Completed";
+
+      return (
+        ORDER_STATUS_LABELS[numericStatus] ||
+        "Order Placed"
+      );
+    }
+
+    return "Order Placed";
+  };
+
+  const getNextStatus = (status) => {
+    const index = ORDER_STATUS_LABELS.indexOf(status);
+
+    return index >= 0 && index < ORDER_STATUS_LABELS.length - 1
+      ? index + 1
+      : null;
+  };
+
+  // Cancel order with confirmation.
+  const handleCancelOrder = (orderId) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to cancel order ${orderId}?`
+    );
+
+    if (confirmed) {
+      onStatusUpdate(orderId, 5);
+    }
+  };
+
+  const statusStyle = (status) => {
+    if (status === "Completed")
+      return "bg-emerald-100 text-emerald-700";
+
+    if (status === "Ready")
+      return "bg-teal-100 text-teal-700";
+
+    if (status === "Preparing")
+      return "bg-amber-100 text-amber-700";
+
+    if (status === "Order Confirmed")
+      return "bg-blue-100 text-blue-700";
+
+    if (status === "Cancelled")
+      return "bg-rose-100 text-rose-700";
+
+    return "bg-orange-100 text-orange-700";
+  };
+
+  const activeOrders = orders.filter(
+    (order) =>
+      !["Completed", "Cancelled"].includes(getOrderStatus(order))
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-extrabold text-[#10264F]">
+            Canteen Order Management
+          </h1>
+
+          <p className="mt-1 text-sm text-slate-500">
+            View student orders and update their preparation status.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onRefresh}
+          className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-[#10264F] transition hover:border-teal-300 hover:bg-teal-50"
+        >
+          Refresh Orders
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+          <p className="text-sm font-semibold text-slate-500">
+            Total Orders
+          </p>
+
+          <p className="mt-2 text-3xl font-extrabold text-[#10264F]">
+            {orders.length}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+          <p className="text-sm font-semibold text-slate-500">
+            Active Orders
+          </p>
+
+          <p className="mt-2 text-3xl font-extrabold text-amber-600">
+            {activeOrders.length}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+          <p className="text-sm font-semibold text-slate-500">
+            Completed Orders
+          </p>
+
+          <p className="mt-2 text-3xl font-extrabold text-emerald-600">
+            {
+              orders.filter(
+                (order) => getOrderStatus(order) === "Completed"
+              ).length
+            }
+          </p>
+        </div>
+      </div>
+
+      {orders.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-teal-50 text-teal-700">
+            <Utensils size={30} />
+          </div>
+
+          <h3 className="text-lg font-extrabold text-[#10264F]">
+            No canteen orders yet
+          </h3>
+
+          <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
+            Orders placed by students will appear here. Place a test
+            order from the student Canteen page, then select Refresh Orders.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {orders.map((order, index) => {
+            const orderId =
+              order.id || order.orderId || `ORDER-${index + 1}`;
+
+            const status = getOrderStatus(order);
+            const nextStatus = getNextStatus(status);
+
+            const items = Array.isArray(order.items)
+              ? order.items
+              : [];
+
+            const studentName =
+              order.studentName ||
+              order.userName ||
+              order.customerName ||
+              order.user?.name ||
+              "Student";
+
+            return (
+              <article
+                key={String(orderId)}
+                className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm sm:p-6"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                      Order ID
+                    </p>
+
+                    <h3 className="mt-1 text-lg font-extrabold text-[#10264F]">
+                      {orderId}
+                    </h3>
+
+                    <p className="mt-1 text-sm text-slate-500">
+                      Ordered by{" "}
+                      <span className="font-semibold text-slate-700">
+                        {studentName}
+                      </span>
+                    </p>
+                  </div>
+
+                  <span
+                    className={`rounded-full px-3 py-1.5 text-xs font-bold ${statusStyle(
+                      status
+                    )}`}
+                  >
+                    {status}
+                  </span>
+                </div>
+
+                <div className="mt-5 grid gap-4 border-t border-slate-100 pt-4 sm:grid-cols-2">
+                  <div>
+                    <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                      Items
+                    </p>
+
+                    {items.length > 0 ? (
+                      <div className="space-y-1.5">
+                        {items.map((item, itemIndex) => (
+                          <p
+                            key={`${
+                              item.name || item.title || "item"
+                            }-${itemIndex}`}
+                            className="text-sm text-slate-700"
+                          >
+                            {item.name || item.title || "Food item"} ×{" "}
+                            {item.quantity || 1}
+                          </p>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-500">
+                        Item details not available
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2 text-sm">
+                    <p className="text-slate-600">
+                      <span className="font-semibold text-slate-800">
+                        Total:
+                      </span>{" "}
+                      ₹
+                      {Number(
+                        order.total ?? order.grandTotal ?? 0
+                      ).toFixed(2)}
+                    </p>
+
+                    <p className="text-slate-600">
+                      <span className="font-semibold text-slate-800">
+                        Method:
+                      </span>{" "}
+                      {order.method || order.deliveryMethod || "Pickup"}
+                    </p>
+
+                    {(order.classroom || order.pickupTime) && (
+                      <p className="text-slate-600">
+                        <span className="font-semibold text-slate-800">
+                          Pickup / Delivery:
+                        </span>{" "}
+                        {[order.classroom, order.pickupTime]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    )}
+
+                    {order.date && (
+                      <p className="text-slate-500">
+                        <span className="font-semibold text-slate-700">
+                          Date:
+                        </span>{" "}
+                        {order.date}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+                  <p className="text-xs text-slate-500">
+                    {status === "Completed"
+                      ? "This order has been completed."
+                      : status === "Cancelled"
+                        ? "This order was cancelled."
+                        : "Update the status when the order moves to the next stage."}
+                  </p>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    {nextStatus !== null && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onStatusUpdate(orderId, nextStatus)
+                        }
+                        className="rounded-xl bg-[#10264F] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-teal-700"
+                      >
+                        {nextStatus === 1
+                          ? "Confirm Order"
+                          : nextStatus === 2
+                            ? "Start Preparing"
+                            : nextStatus === 3
+                              ? "Mark as Ready"
+                              : "Complete Order"}
+                      </button>
+                    )}
+
+                    {!["Completed", "Cancelled"].includes(status) && (
+                      <button
+                        type="button"
+                        onClick={() => handleCancelOrder(orderId)}
+                        className="rounded-xl border border-rose-200 bg-rose-50 px-5 py-2.5 text-sm font-bold text-rose-700 transition hover:bg-rose-600 hover:text-white"
+                      >
+                        Cancel Order
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ======================================================
 // ADMIN DASHBOARD
 // ======================================================
 
@@ -53,6 +453,94 @@ function AdminDashboard({
 }) {
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const [canteenOrders, setCanteenOrders] = useState(
+    () => readCampusOrders()
+  );
+
+  const refreshCanteenOrders = () => {
+    setCanteenOrders(readCampusOrders());
+  };
+
+  // Update order status or cancel order.
+  const updateCanteenOrderStatus = (orderId, nextStatus) => {
+    const currentOrders = readCampusOrders();
+
+    const updatedOrders = currentOrders.map((order) => {
+      const currentId = order.id || order.orderId;
+
+      if (String(currentId) !== String(orderId)) {
+        return order;
+      }
+
+      const currentStatus = Number(order.status);
+
+      // Prevent changes to completed or cancelled orders.
+      if (currentStatus >= 4) {
+        return order;
+      }
+
+      const statusText =
+        nextStatus === 5
+          ? "Cancelled"
+          : ORDER_STATUS_LABELS[nextStatus];
+
+      return {
+        ...order,
+        status: nextStatus,
+        statusText,
+        cancelledAt:
+          nextStatus === 5
+            ? new Date().toISOString()
+            : order.cancelledAt,
+      };
+    });
+
+    localStorage.setItem(
+      CAMPUS_ORDERS_KEY,
+      JSON.stringify(updatedOrders)
+    );
+
+    // Keep the legacy single-order record in sync.
+    try {
+      const currentOrder = JSON.parse(
+        localStorage.getItem(CAMPUS_CURRENT_ORDER_KEY) || "null"
+      );
+
+      if (
+        currentOrder &&
+        String(currentOrder.id || currentOrder.orderId) ===
+          String(orderId)
+      ) {
+        const statusText =
+          nextStatus === 5
+            ? "Cancelled"
+            : ORDER_STATUS_LABELS[nextStatus];
+
+        localStorage.setItem(
+          CAMPUS_CURRENT_ORDER_KEY,
+          JSON.stringify({
+            ...currentOrder,
+            status: nextStatus,
+            statusText,
+            cancelledAt:
+              nextStatus === 5
+                ? new Date().toISOString()
+                : currentOrder.cancelledAt,
+          })
+        );
+      }
+    } catch (error) {
+      console.error("Could not sync current order:", error);
+    }
+
+    setCanteenOrders(updatedOrders);
+
+    // Notify student order tracking listeners.
+    window.dispatchEvent(
+      new Event("campusconnectOrdersUpdated")
+    );
+  };
 
   const menuItems = [
     { name: "Dashboard", icon: LayoutDashboard },
@@ -137,7 +625,7 @@ function AdminDashboard({
       onNavigate("Marketplace");
     } else if (name === "Canteen Orders") {
       setActiveTab(name);
-      onNavigate("Canteen");
+      refreshCanteenOrders();
     } else if (name === "Attendance") {
       onNavigate("Attendance");
     } else if (name === "Settings") {
@@ -179,8 +667,12 @@ function AdminDashboard({
             </div>
 
             <div>
-              <h1 className="text-lg font-extrabold">CampusConnect</h1>
-              <p className="text-xs text-blue-200">Administration</p>
+              <h1 className="text-lg font-extrabold">
+                CampusConnect
+              </h1>
+              <p className="text-xs text-blue-200">
+                Administration
+              </p>
             </div>
           </div>
 
@@ -242,7 +734,9 @@ function AdminDashboard({
               <p className="truncate text-sm font-bold">
                 {user?.name || "Administrator"}
               </p>
-              <p className="text-xs text-blue-200">Administrator</p>
+              <p className="text-xs text-blue-200">
+                Administrator
+              </p>
             </div>
 
             <Settings size={16} className="text-blue-200" />
@@ -274,6 +768,7 @@ function AdminDashboard({
               <h2 className="text-xl font-extrabold text-[#10264F] sm:text-2xl">
                 {activeTab}
               </h2>
+
               <p className="hidden text-xs text-slate-500 sm:block">
                 CampusConnect / Administration / {activeTab}
               </p>
@@ -306,19 +801,28 @@ function AdminDashboard({
               <p className="text-sm font-bold text-[#10264F]">
                 {user?.name || "Administrator"}
               </p>
-              <p className="text-xs text-slate-500">Admin Account</p>
+              <p className="text-xs text-slate-500">
+                Admin Account
+              </p>
             </div>
           </div>
         </header>
 
         <div className="p-5 sm:p-8">
-          {activeTab === "Dashboard" ? (
+          {activeTab === "Canteen Orders" ? (
+            <CanteenOrdersPanel
+              orders={canteenOrders}
+              onStatusUpdate={updateCanteenOrderStatus}
+              onRefresh={refreshCanteenOrders}
+            />
+          ) : activeTab === "Dashboard" ? (
             <>
               <div className="mb-7 flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h1 className="text-2xl font-extrabold text-[#10264F]">
                     Admin Overview
                   </h1>
+
                   <p className="mt-1 text-sm text-slate-500">
                     Here's what's happening across your campus today.
                   </p>
@@ -345,7 +849,10 @@ function AdminDashboard({
                         <p className="text-sm font-semibold text-slate-500">
                           {stat.title}
                         </p>
-                        <div className={`rounded-xl p-3 ${stat.bg} ${stat.color}`}>
+
+                        <div
+                          className={`rounded-xl p-3 ${stat.bg} ${stat.color}`}
+                        >
                           <Icon size={22} />
                         </div>
                       </div>
@@ -353,6 +860,7 @@ function AdminDashboard({
                       <h2 className="mt-4 text-3xl font-extrabold text-[#10264F]">
                         {stat.value}
                       </h2>
+
                       <p className="mt-2 text-xs text-slate-400">
                         Campus overview
                       </p>
@@ -368,6 +876,7 @@ function AdminDashboard({
                       <h3 className="text-lg font-extrabold text-[#10264F]">
                         Recent Orders
                       </h3>
+
                       <p className="mt-1 text-xs text-slate-500">
                         Latest canteen and marketplace orders
                       </p>
@@ -375,7 +884,9 @@ function AdminDashboard({
 
                     <button
                       type="button"
-                      onClick={() => handleMenuClick("Canteen Orders")}
+                      onClick={() =>
+                        handleMenuClick("Canteen Orders")
+                      }
                       className="text-sm font-bold text-blue-600 hover:text-blue-800"
                     >
                       View all
@@ -403,12 +914,15 @@ function AdminDashboard({
                             <td className="whitespace-nowrap px-5 py-5 font-semibold text-blue-700">
                               {order.id}
                             </td>
+
                             <td className="whitespace-nowrap px-5 py-5 font-medium text-slate-700">
                               {order.user}
                             </td>
+
                             <td className="whitespace-nowrap px-5 py-5 text-slate-600">
                               {order.item}
                             </td>
+
                             <td className="px-5 py-5">
                               <span
                                 className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-bold ${getStatusStyle(
@@ -418,6 +932,7 @@ function AdminDashboard({
                                 {order.status}
                               </span>
                             </td>
+
                             <td className="whitespace-nowrap px-5 py-5 text-xs text-slate-500">
                               {order.date}
                             </td>
@@ -433,6 +948,7 @@ function AdminDashboard({
                     <h3 className="text-lg font-extrabold text-[#10264F]">
                       Attendance Overview
                     </h3>
+
                     <p className="mt-1 text-xs text-slate-500">
                       Today's student attendance
                     </p>
@@ -447,10 +963,12 @@ function AdminDashboard({
                             "conic-gradient(#10B981 0% 92%, #F43F5E 92% 97%, #CBD5E1 97% 100%)",
                         }}
                       />
+
                       <div className="absolute inset-5 flex flex-col items-center justify-center rounded-full bg-white">
                         <span className="text-3xl font-extrabold text-[#10264F]">
                           92%
                         </span>
+
                         <span className="text-xs font-medium text-slate-500">
                           Present
                         </span>
@@ -468,9 +986,12 @@ function AdminDashboard({
                           className="flex items-center justify-between gap-8"
                         >
                           <span className="flex items-center gap-2 text-sm text-slate-600">
-                            <span className={`h-3 w-3 rounded-full ${color}`} />
+                            <span
+                              className={`h-3 w-3 rounded-full ${color}`}
+                            />
                             {label}
                           </span>
+
                           <span className="text-sm font-extrabold text-[#10264F]">
                             {value}
                           </span>
@@ -484,6 +1005,7 @@ function AdminDashboard({
                       <CheckCircle2 size={17} />
                       Attendance is on track
                     </div>
+
                     <p className="mt-1 text-xs text-emerald-700/80">
                       Overall attendance is above the expected target.
                     </p>
@@ -498,10 +1020,26 @@ function AdminDashboard({
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                   {[
-                    { label: "Manage Users", icon: Users, tab: "Users" },
-                    { label: "Announcements", icon: Megaphone, tab: "Announcements" },
-                    { label: "View Reports", icon: BarChart3, tab: "Reports" },
-                    { label: "Manage Events", icon: CalendarDays, tab: "Events" },
+                    {
+                      label: "Manage Users",
+                      icon: Users,
+                      tab: "Users",
+                    },
+                    {
+                      label: "Announcements",
+                      icon: Megaphone,
+                      tab: "Announcements",
+                    },
+                    {
+                      label: "View Reports",
+                      icon: BarChart3,
+                      tab: "Reports",
+                    },
+                    {
+                      label: "Manage Events",
+                      icon: CalendarDays,
+                      tab: "Events",
+                    },
                   ].map((action) => {
                     const Icon = action.icon;
 
@@ -515,6 +1053,7 @@ function AdminDashboard({
                         <div className="rounded-lg bg-teal-50 p-2 text-teal-700">
                           <Icon size={20} />
                         </div>
+
                         <span className="text-sm font-bold text-[#10264F]">
                           {action.label}
                         </span>
@@ -531,7 +1070,9 @@ function AdminDashboard({
                   const selected = menuItems.find(
                     (item) => item.name === activeTab
                   );
+
                   const Icon = selected?.icon || ShieldCheck;
+
                   return <Icon size={38} />;
                 })()}
               </div>
@@ -539,6 +1080,7 @@ function AdminDashboard({
               <h2 className="text-2xl font-extrabold text-[#10264F]">
                 {activeTab}
               </h2>
+
               <p className="mt-3 max-w-md text-sm leading-relaxed text-slate-500">
                 The {activeTab.toLowerCase()} management section will be
                 connected to the CampusConnect backend in the next stage.
@@ -579,7 +1121,10 @@ function Hero({ onGetStarted, loggedInUser }) {
         </p>
 
         <h1 className="mb-6 text-4xl font-extrabold leading-tight md:text-6xl">
-          Welcome to <span className="text-teal-300">CampusConnect</span>
+          Welcome to{" "}
+          <span className="text-teal-300">
+            CampusConnect
+          </span>
         </h1>
 
         <p className="mb-8 text-lg leading-relaxed text-gray-200 md:text-xl">
@@ -594,6 +1139,7 @@ function Hero({ onGetStarted, loggedInUser }) {
           <span className="text-xl">
             {loggedInUser ? "Go to Dashboard" : "Get Started"}
           </span>
+
           <span className="text-2xl">→</span>
         </button>
       </div>
@@ -643,14 +1189,19 @@ function Features({
   ];
 
   return (
-    <section id="features" className="bg-[#F0FAFA] px-6 py-16 sm:py-20">
+    <section
+      id="features"
+      className="bg-[#F0FAFA] px-6 py-16 sm:py-20"
+    >
       <div className="mb-12 text-center">
         <p className="mb-3 font-semibold uppercase tracking-widest text-teal-700">
           Explore CampusConnect
         </p>
+
         <h2 className="text-3xl font-extrabold text-[#123D50] md:text-4xl">
           Everything Your Campus Needs
         </h2>
+
         <p className="mt-3 text-slate-600">
           One platform to make your campus life easier and smarter.
         </p>
@@ -719,11 +1270,17 @@ function Stats() {
   };
 
   return (
-    <section style={{ backgroundColor: "#F0FAFA", padding: "0 24px 65px" }}>
+    <section
+      style={{
+        backgroundColor: "#F0FAFA",
+        padding: "0 24px 65px",
+      }}
+    >
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 270px))",
+          gridTemplateColumns:
+            "repeat(auto-fit, minmax(240px, 270px))",
           justifyContent: "center",
           gap: "30px",
           width: "100%",
@@ -739,9 +1296,11 @@ function Stats() {
               <div className="mb-3 rounded-full bg-[#E0F2F1] p-3">
                 <Icon size={32} className="text-[#0F766E]" />
               </div>
+
               <h3 className="text-4xl font-extrabold text-[#123D50]">
                 {stat.number}
               </h3>
+
               <p className="mt-2 text-base font-medium text-slate-600">
                 {stat.label}
               </p>
@@ -770,8 +1329,12 @@ function Navbar({
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-8">
         <div className="flex items-center gap-3">
           <div className="rounded-xl bg-[#E0F2F1] p-2">
-            <GraduationCap size={36} className="text-[#123D50]" />
+            <GraduationCap
+              size={36}
+              className="text-[#123D50]"
+            />
           </div>
+
           <h1 className="text-2xl font-extrabold text-[#123D50]">
             CampusConnect
           </h1>
@@ -782,7 +1345,10 @@ function Navbar({
             Home
           </a>
 
-          <a href="#features" className="transition hover:text-[#0F766E]">
+          <a
+            href="#features"
+            className="transition hover:text-[#0F766E]"
+          >
             Features
           </a>
 
@@ -818,8 +1384,12 @@ function Navbar({
                     className="h-7 w-7 rounded-full object-cover"
                   />
                 ) : (
-                  <UserCircle size={22} className="text-teal-700" />
+                  <UserCircle
+                    size={22}
+                    className="text-teal-700"
+                  />
                 )}
+
                 <span className="max-w-[130px] truncate">
                   {loggedInUser.name || "User"}
                 </span>
@@ -861,7 +1431,7 @@ function Navbar({
 }
 
 // ======================================================
-// CONTACT PAGE - BUILT DIRECTLY INTO APP.JSX
+// CONTACT PAGE
 // ======================================================
 
 function ContactPage({ onBack }) {
@@ -880,8 +1450,12 @@ function ContactPage({ onBack }) {
       <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-5 shadow-sm sm:px-10">
         <div className="flex items-center gap-3">
           <div className="rounded-xl bg-[#E0F2F1] p-2">
-            <GraduationCap size={32} className="text-[#123D50]" />
+            <GraduationCap
+              size={32}
+              className="text-[#123D50]"
+            />
           </div>
+
           <h1 className="text-xl font-extrabold text-[#123D50] sm:text-2xl">
             CampusConnect
           </h1>
@@ -934,6 +1508,7 @@ function ContactPage({ onBack }) {
                 <div className="rounded-xl bg-white/10 p-3">
                   <Mail size={21} />
                 </div>
+
                 <div>
                   <p className="font-bold">Email Us</p>
                   <p className="mt-1 break-all text-sm text-blue-200">
@@ -946,6 +1521,7 @@ function ContactPage({ onBack }) {
                 <div className="rounded-xl bg-white/10 p-3">
                   <Phone size={21} />
                 </div>
+
                 <div>
                   <p className="font-bold">Phone</p>
                   <p className="mt-1 text-sm text-blue-200">
@@ -958,6 +1534,7 @@ function ContactPage({ onBack }) {
                 <div className="rounded-xl bg-white/10 p-3">
                   <MapPin size={21} />
                 </div>
+
                 <div>
                   <p className="font-bold">Location</p>
                   <p className="mt-1 text-sm text-blue-200">
@@ -971,6 +1548,7 @@ function ContactPage({ onBack }) {
               <p className="text-sm font-semibold text-teal-200">
                 CampusConnect
               </p>
+
               <p className="mt-2 text-sm leading-relaxed text-blue-100">
                 Bringing students, teachers, and campus services together
                 on one platform.
@@ -982,11 +1560,15 @@ function ContactPage({ onBack }) {
             <h2 className="text-2xl font-extrabold text-[#123D50]">
               Send Us a Message
             </h2>
+
             <p className="mt-2 text-sm text-slate-500">
               Fill in the details below and let us know how we can help.
             </p>
 
-            <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+            <form
+              onSubmit={handleSubmit}
+              className="mt-8 space-y-5"
+            >
               <div>
                 <label
                   htmlFor="contact-name"
@@ -994,6 +1576,7 @@ function ContactPage({ onBack }) {
                 >
                   Your Name
                 </label>
+
                 <input
                   id="contact-name"
                   name="name"
@@ -1011,6 +1594,7 @@ function ContactPage({ onBack }) {
                 >
                   Email Address
                 </label>
+
                 <input
                   id="contact-email"
                   name="email"
@@ -1028,6 +1612,7 @@ function ContactPage({ onBack }) {
                 >
                   Subject
                 </label>
+
                 <input
                   id="contact-subject"
                   name="subject"
@@ -1045,6 +1630,7 @@ function ContactPage({ onBack }) {
                 >
                   Message
                 </label>
+
                 <textarea
                   id="contact-message"
                   name="message"
@@ -1257,7 +1843,10 @@ function App() {
   // ====================================================
 
   if (currentPage === "admin") {
-    if (!loggedInUser || loggedInUser.role?.toLowerCase() !== "admin") {
+    if (
+      !loggedInUser ||
+      loggedInUser.role?.toLowerCase() !== "admin"
+    ) {
       return (
         <Auth
           initialMode="login"
@@ -1383,7 +1972,9 @@ function App() {
   // ====================================================
 
   if (currentPage === "about") {
-    return <About onBack={() => setCurrentPage("home")} />;
+    return (
+      <About onBack={() => setCurrentPage("home")} />
+    );
   }
 
   // ====================================================
